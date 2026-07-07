@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3075846268046807"
-     crossorigin="anonymous"></script>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎬 MovieHub - Watch Free Movies</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3075846268046807"
+     crossorigin="anonymous"></script>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -29,6 +31,21 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0f; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        /* Ad Container */
+        .ad-container {
+            text-align: center;
+            margin: 20px auto;
+            max-width: 728px;
+            min-height: 90px;
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed #2a2a3a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+            font-size: 12px;
+        }
 
         /* ===== HEADER ===== */
         header {
@@ -174,6 +191,7 @@
             object-fit: cover;
             display: block;
             transition: transform 0.5s;
+            background: #1a1a2e;
         }
         .movie-card:hover img { transform: scale(1.06); }
         .play-overlay {
@@ -325,7 +343,7 @@
         .alt-source-btn:hover { border-color: #fff; color: #fff; }
         .alt-source-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-        /* ===== LOADING ===== */
+        /* ===== LOADING & EMPTY STATES ===== */
         .loading-wrap {
             grid-column: 1 / -1;
             display: flex;
@@ -401,6 +419,14 @@
         <button class="cat-btn" data-cat="now_playing">🎬 Now Playing</button>
     </div>
 
+    <!-- ===== AD SPACE 1 ===== -->
+    <div class="ad-container">
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:728px;height:90px"
+             data-ad-client="ca-pub-3075846268046807"
+             data-ad-slot="1234567890"></ins>
+    </div>
+
     <!-- ===== MOVIE GRID ===== -->
     <div class="movie-grid" id="movieGrid">
         <div class="loading-wrap">
@@ -411,6 +437,14 @@
 
     <!-- ===== PAGINATION ===== -->
     <div class="pagination" id="pagination"></div>
+
+    <!-- ===== AD SPACE 2 ===== -->
+    <div class="ad-container">
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:728px;height:90px"
+             data-ad-client="ca-pub-3075846268046807"
+             data-ad-slot="0987654321"></ins>
+    </div>
 
     <!-- ===== PLAYER MODAL ===== -->
     <div class="modal-overlay" id="playerModal">
@@ -429,6 +463,7 @@
                 <button class="alt-source-btn" data-source="vidsrcpro">VidSrc PRO</button>
                 <button class="alt-source-btn" data-source="superembed">SuperEmbed</button>
                 <button class="alt-source-btn" data-source="2embed">2Embed</button>
+                <span style="color:#aaa;font-size:12px;margin-left:10px;" id="tvEpisodeSelector"></span>
             </div>
         </div>
     </div>
@@ -440,22 +475,20 @@
         // ============================================
         // CONFIGURATION
         // ============================================
-        const TMDB_API_KEY = '035b07d39c0ab3e7828a852040532c38';
+        const TMDB_API_KEY = '035b07d39c0ab3e7828a852040532c38'; // Your API Key
         const TMDB_BASE = 'https://api.themoviedb.org/3';
         const IMG_BASE = 'https://image.tmdb.org/t/p/w500';
 
         // ============================================
         // STATE
         // ============================================
-        let currentType = 'movie'; // 'movie' or 'tv'
+        let currentType = 'movie';
         let currentCategory = 'trending';
         let currentPage = 1;
         let totalPages = 1;
         let isSearching = false;
         let currentTmdbId = null;
         let currentActiveSource = 'vidsrc';
-
-        // TV Show state
         let tvDetails = null;
         let currentSeason = 1;
         let currentEpisode = 1;
@@ -472,6 +505,7 @@
         const videoFrame = document.getElementById('videoFrame');
         const modalTitle = document.getElementById('modalTitle');
         const closePlayerBtn = document.getElementById('closePlayer');
+        const tvEpisodeSelector = document.getElementById('tvEpisodeSelector');
 
         // ============================================
         // EMBED URL GENERATORS
@@ -479,36 +513,28 @@
         function getEmbedUrl(source, tmdbId, type, season, episode) {
             switch (source) {
                 case 'vidsrc':
-                    // PRIMARY: vidsrc.sbs (WORKING ✅)
                     if (type === 'movie') return `https://vidsrc.sbs/embed/movie/${tmdbId}`;
                     return `https://vidsrc.sbs/embed/tv/${tmdbId}/${season}/${episode}`;
-
                 case 'vidsrcpro':
-                    // BACKUP 1: vidsrc.pro
                     if (type === 'movie') return `https://vidsrc.pro/embed/movie/${tmdbId}`;
                     return `https://vidsrc.pro/embed/tv/${tmdbId}/${season}/${episode}`;
-
                 case 'superembed':
-                    // BACKUP 2: multiembed
                     if (type === 'movie')
                         return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
                     return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
-
                 case '2embed':
-                    // BACKUP 3: 2embed
                     if (type === 'movie') return `https://www.2embed.cc/embed/${tmdbId}`;
                     return `https://www.2embed.cc/embedtv/${tmdbId}&s=${season}&e=${episode}`;
-
                 default:
                     return getEmbedUrl('vidsrc', tmdbId, type, season, episode);
             }
         }
 
         // ============================================
-        // FETCH MOVIES FROM TMDB
+        // FETCH FROM TMDB
         // ============================================
-        async function fetchFromTMDB(endpoint, page = 1) {
-            const url = `${TMDB_BASE}${endpoint}?api_key=${TMDB_API_KEY}&page=${page}&language=en-US`;
+        async function fetchFromTMDB(endpoint, page = 1, extraParams = '') {
+            const url = `${TMDB_BASE}${endpoint}?api_key=${TMDB_API_KEY}&page=${page}&language=en-US${extraParams}`;
             try {
                 const res = await fetch(url);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -544,8 +570,7 @@
         }
 
         async function searchTMDB(query, page, type) {
-            const url =
-                `${TMDB_BASE}/search/${type}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}&language=en-US`;
+            const url = `${TMDB_BASE}/search/${type}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}&language=en-US`;
             try {
                 const res = await fetch(url);
                 const data = await res.json();
@@ -565,359 +590,293 @@
         // ============================================
         // RENDER MOVIES
         // ============================================
-        function renderContent(items, isTV = false) {
-            if (!items || !items.length) {
-                movieGrid.innerHTML = '<div class="no-results">😕 No results found. Try different search!</div>';
+        function renderMovies(items) {
+            movieGrid.innerHTML = '';
+            
+            if (!items || items.length === 0) {
+                movieGrid.innerHTML = '<div class="no-results">😕 No movies found. Try a different search.</div>';
                 return;
             }
 
-            movieGrid.innerHTML = items
-                .filter(item => item.poster_path)
-                .map(item => {
-                    const poster = IMG_BASE + item.poster_path;
-                    const title = isTV ? (item.name || 'Unknown') : (item.title || 'Unknown');
-                    const date = isTV ?
-                        (item.first_air_date || '').slice(0, 4) :
-                        (item.release_date || '').slice(0, 4);
-                    const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
-                    const id = item.id;
-                    const type = isTV ? 'tv' : 'movie';
-                    const badge = isTV ? 'TV' : 'HD';
+            items.forEach(item => {
+                const title = item.title || item.name || 'Unknown';
+                const posterPath = item.poster_path 
+                    ? IMG_BASE + item.poster_path 
+                    : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%231a1a2e"><rect width="300" height="450"/><text x="150" y="225" text-anchor="middle" fill="%23555" font-size="20">No Image</text></svg>';
+                const year = (item.release_date || item.first_air_date || '').substring(0, 4);
+                const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
+                const type = item.media_type || currentType;
 
-                    return `
-                        <div class="movie-card" onclick="playContent(${id}, '${escapeStr(title)}', '${type}')">
-                            <div class="img-wrap">
-                                <img src="${poster}" alt="${escapeStr(title)}" loading="lazy"
-                                     onerror="this.src='https://via.placeholder.com/300x450/1a1a1a/e50914?text=No+Poster'">
-                                <div class="play-overlay"><i class="fas fa-play-circle"></i></div>
-                                <div class="movie-badge">${badge}</div>
-                            </div>
-                            <div class="movie-info">
-                                <div class="movie-title" title="${escapeStr(title)}">${escapeStr(title)}</div>
-                                <div class="movie-meta">
-                                    <span>${date || 'N/A'}</span>
-                                    <span class="movie-rating"><i class="fas fa-star"></i> ${rating}</span>
-                                </div>
-                            </div>
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.innerHTML = `
+                    <div class="img-wrap">
+                        <img src="${posterPath}" alt="${title}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22 fill=%22%231a1a2e%22><rect width=%22300%22 height=%22450%22/><text x=%22150%22 y=%22225%22 text-anchor=%22middle%22 fill=%22%23555%22 font-size=%2220%22>No Image</text></svg>'">
+                        <div class="play-overlay"><i class="fas fa-play-circle"></i></div>
+                        ${type === 'tv' ? '<div class="movie-badge">TV</div>' : ''}
+                    </div>
+                    <div class="movie-info">
+                        <div class="movie-title" title="${title}">${title}</div>
+                        <div class="movie-meta">
+                            <span>${year || 'N/A'}</span>
+                            <span class="movie-rating"><i class="fas fa-star"></i> ${rating}</span>
                         </div>
-                    `;
-                }).join('');
+                    </div>
+                `;
+                card.addEventListener('click', () => playMedia(item));
+                movieGrid.appendChild(card);
+            });
         }
 
-        function escapeStr(str) {
-            if (!str) return '';
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        // ============================================
+        // PLAY MEDIA
+        // ============================================
+        async function playMedia(item) {
+            currentTmdbId = item.id;
+            const type = item.media_type || currentType;
+            const title = item.title || item.name || 'Unknown';
+
+            modalTitle.textContent = `▶ ${title}`;
+            
+            if (type === 'tv') {
+                tvDetails = await getTVShowDetails(item.id);
+                if (tvDetails && tvDetails.seasons && tvDetails.seasons.length > 0) {
+                    currentSeason = tvDetails.seasons[0].season_number || 1;
+                    currentEpisode = 1;
+                    renderEpisodeSelector();
+                } else {
+                    currentSeason = 1;
+                    currentEpisode = 1;
+                    tvEpisodeSelector.innerHTML = '';
+                }
+            } else {
+                tvEpisodeSelector.innerHTML = '';
+                currentSeason = 1;
+                currentEpisode = 1;
+            }
+
+            loadPlayer(type);
+            playerModal.classList.add('show');
+        }
+
+        function renderEpisodeSelector() {
+            if (!tvDetails || !tvDetails.seasons) return;
+            
+            let html = 'Season: <select id="seasonSelect" style="background:#1a1a2e;color:#fff;border:1px solid #2a2a3a;padding:5px;border-radius:4px;margin:0 10px;">';
+            tvDetails.seasons.forEach(season => {
+                if (season.season_number > 0) {
+                    html += `<option value="${season.season_number}" ${season.season_number === currentSeason ? 'selected' : ''}>S${season.season_number} (${season.episode_count} eps)</option>`;
+                }
+            });
+            html += '</select>';
+            
+            html += 'Episode: <select id="episodeSelect" style="background:#1a1a2e;color:#fff;border:1px solid #2a2a3a;padding:5px;border-radius:4px;margin:0 10px;">';
+            const seasonData = tvDetails.seasons.find(s => s.season_number === currentSeason);
+            const episodeCount = seasonData ? seasonData.episode_count : 10;
+            for (let i = 1; i <= episodeCount; i++) {
+                html += `<option value="${i}" ${i === currentEpisode ? 'selected' : ''}>E${i}</option>`;
+            }
+            html += '</select>';
+            
+            html += '<button id="playEpisodeBtn" style="background:var(--primary);color:#fff;border:none;padding:5px 15px;border-radius:4px;cursor:pointer;font-weight:bold;">Play</button>';
+            
+            tvEpisodeSelector.innerHTML = html;
+            
+            document.getElementById('seasonSelect')?.addEventListener('change', function() {
+                currentSeason = parseInt(this.value);
+                currentEpisode = 1;
+                renderEpisodeSelector();
+            });
+            
+            document.getElementById('playEpisodeBtn')?.addEventListener('click', function() {
+                const epSelect = document.getElementById('episodeSelect');
+                if (epSelect) currentEpisode = parseInt(epSelect.value);
+                loadPlayer('tv');
+            });
+        }
+
+        function loadPlayer(type) {
+            const url = getEmbedUrl(currentActiveSource, currentTmdbId, type, currentSeason, currentEpisode);
+            videoFrame.src = url;
+        }
+
+        // ============================================
+        // LOAD CONTENT
+        // ============================================
+        async function loadContent() {
+            movieGrid.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span style="color:#555;">Loading...</span></div>';
+            pagination.innerHTML = '';
+
+            let data;
+            if (isSearching && searchInput.value.trim()) {
+                data = await searchTMDB(searchInput.value.trim(), currentPage, currentType);
+            } else if (currentType === 'movie') {
+                data = await fetchMovies(currentCategory, currentPage);
+            } else {
+                data = await fetchTVShows(currentCategory, currentPage);
+                
+                data = data.map(item => ({ ...item, media_type: 'tv' }));
+            }
+
+            renderMovies(data);
+            renderPagination();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // ============================================
         // PAGINATION
         // ============================================
         function renderPagination() {
-            if (totalPages <= 1) {
-                pagination.innerHTML = '';
-                return;
-            }
-
             pagination.innerHTML = '';
-            const maxShow = 7;
-            let start = Math.max(1, currentPage - Math.floor(maxShow / 2));
-            let end = Math.min(totalPages, start + maxShow - 1);
-            if (end - start < maxShow - 1) start = Math.max(1, end - maxShow + 1);
+            if (totalPages <= 1) return;
 
-            // First & Prev
-            if (currentPage > 1) {
-                pagination.innerHTML += `<button class="page-btn" onclick="goToPage(1)">«</button>`;
-                pagination.innerHTML +=
-                    `<button class="page-btn" onclick="goToPage(${currentPage - 1})">‹</button>`;
+            const maxButtons = 7;
+            let startPage = Math.max(1, currentPage - 3);
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+            if (endPage - startPage < maxButtons - 1) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
             }
 
-            // Page numbers
-            for (let i = start; i <= end; i++) {
-                pagination.innerHTML +=
-                    `<button class="page-btn ${i === currentPage ? 'active' : ''}" 
-                             onclick="goToPage(${i})">${i}</button>`;
-            }
-
-            // Next & Last
-            if (currentPage < totalPages) {
-                pagination.innerHTML +=
-                    `<button class="page-btn" onclick="goToPage(${currentPage + 1})">›</button>`;
-                pagination.innerHTML +=
-                    `<button class="page-btn" onclick="goToPage(${totalPages})">»</button>`;
-            }
-        }
-
-        async function goToPage(page) {
-            if (page < 1 || page > totalPages) return;
-            currentPage = page;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            await loadContent();
-        }
-
-        // ============================================
-        // PLAY CONTENT
-        // ============================================
-        async function playContent(tmdbId, title, type) {
-            currentTmdbId = tmdbId;
-            currentActiveSource = 'vidsrc';
-            modalTitle.textContent = '▶ ' + title;
-
-            if (type === 'tv') {
-                // Fetch TV show details for season/episode
-                tvDetails = await getTVShowDetails(tmdbId);
-                if (tvDetails && tvDetails.seasons) {
-                    const validSeasons = tvDetails.seasons.filter(s => s.season_number > 0);
-                    currentSeason = validSeasons[0]?.season_number || 1;
-                    currentEpisode = 1;
-                    // Add TV controls to modal
-                    addTVControls(validSeasons);
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.textContent = '«';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadContent();
                 }
-            } else {
-                removeTVControls();
+            });
+            pagination.appendChild(prevBtn);
+
+            // Page buttons
+            for (let i = startPage; i <= endPage; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn';
+                btn.textContent = i;
+                if (i === currentPage) btn.classList.add('active');
+                btn.addEventListener('click', () => {
+                    currentPage = i;
+                    loadContent();
+                });
+                pagination.appendChild(btn);
             }
 
-            // Load video
-            const url = getEmbedUrl(currentActiveSource, tmdbId, type, currentSeason, currentEpisode);
-            videoFrame.src = url;
-            updateSourceButtons();
-            playerModal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function addTVControls(seasons) {
-            // Remove existing controls if any
-            removeTVControls();
-
-            const controlsDiv = document.createElement('div');
-            controlsDiv.id = 'tvSeasonControls';
-            controlsDiv.style.cssText =
-                'display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;';
-
-            const seasonLabel = document.createElement('span');
-            seasonLabel.textContent = '📺 Season:';
-            seasonLabel.style.cssText = 'color:#aaa;font-size:12px;font-weight:600;';
-            controlsDiv.appendChild(seasonLabel);
-
-            const seasonSelect = document.createElement('select');
-            seasonSelect.id = 'seasonSelect';
-            seasonSelect.style.cssText =
-                'padding:8px 14px;background:#1a1a2e;border:1px solid #2a2a3a;color:#fff;border-radius:8px;font-size:13px;cursor:pointer;outline:none;';
-            seasons.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.season_number;
-                opt.textContent = `Season ${s.season_number} (${s.episode_count || '?'} ep)`;
-                if (s.season_number === currentSeason) opt.selected = true;
-                seasonSelect.appendChild(opt);
-            });
-            seasonSelect.addEventListener('change', () => {
-                currentSeason = parseInt(seasonSelect.value);
-                currentEpisode = 1;
-                updateEpisodeSelect(seasons);
-                updateVideoUrl();
-            });
-            controlsDiv.appendChild(seasonSelect);
-
-            const epLabel = document.createElement('span');
-            epLabel.textContent = '🎬 Episode:';
-            epLabel.style.cssText = 'color:#aaa;font-size:12px;font-weight:600;';
-            controlsDiv.appendChild(epLabel);
-
-            const epSelect = document.createElement('select');
-            epSelect.id = 'episodeSelect';
-            epSelect.style.cssText =
-                'padding:8px 14px;background:#1a1a2e;border:1px solid #2a2a3a;color:#fff;border-radius:8px;font-size:13px;cursor:pointer;outline:none;';
-            epSelect.addEventListener('change', () => {
-                currentEpisode = parseInt(epSelect.value);
-                updateVideoUrl();
-            });
-            controlsDiv.appendChild(epSelect);
-
-            // Insert after source buttons
-            const modalInfoBar = document.querySelector('.modal-info-bar');
-            modalInfoBar.after(controlsDiv);
-
-            updateEpisodeSelect(seasons);
-        }
-
-        function updateEpisodeSelect(seasons) {
-            const epSelect = document.getElementById('episodeSelect');
-            if (!epSelect) return;
-            const season = seasons.find(s => s.season_number === currentSeason);
-            const epCount = season?.episode_count || 24;
-            epSelect.innerHTML = Array.from({ length: epCount }, (_, i) => {
-                const ep = i + 1;
-                return `<option value="${ep}" ${ep === currentEpisode ? 'selected' : ''}>Episode ${ep}</option>`;
-            }).join('');
-        }
-
-        function removeTVControls() {
-            const controls = document.getElementById('tvSeasonControls');
-            if (controls) controls.remove();
-            tvDetails = null;
-        }
-
-        function updateVideoUrl() {
-            if (!currentTmdbId) return;
-            const type = tvDetails ? 'tv' : 'movie';
-            const url = getEmbedUrl(currentActiveSource, currentTmdbId, type, currentSeason,
-            currentEpisode);
-            videoFrame.src = url;
-        }
-
-        function updateSourceButtons() {
-            document.querySelectorAll('.alt-source-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.source === currentActiveSource);
-            });
-        }
-
-        // ============================================
-        // CLOSE PLAYER
-        // ============================================
-        function closePlayer() {
-            playerModal.classList.remove('show');
-            videoFrame.src = '';
-            removeTVControls();
-            currentTmdbId = null;
-            document.body.style.overflow = '';
-        }
-
-        closePlayerBtn.addEventListener('click', closePlayer);
-        playerModal.addEventListener('click', (e) => {
-            if (e.target === playerModal) closePlayer();
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closePlayer();
-        });
-
-        // Source switch buttons
-        document.querySelectorAll('.alt-source-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentActiveSource = btn.dataset.source;
-                updateSourceButtons();
-                updateVideoUrl();
-            });
-        });
-
-        // ============================================
-        // LOAD CONTENT
-        // ============================================
-        async function loadContent() {
-            movieGrid.innerHTML =
-                '<div class="loading-wrap"><div class="spinner"></div><span style="color:#555;">Loading...</span></div>';
-            pagination.innerHTML = '';
-
-            let results;
-            const query = searchInput.value.trim();
-
-            if (query) {
-                isSearching = true;
-                results = await searchTMDB(query, currentPage, currentType);
-            } else {
-                isSearching = false;
-                if (currentType === 'movie') {
-                    results = await fetchMovies(currentCategory, currentPage);
-                } else {
-                    results = await fetchTVShows(currentCategory, currentPage);
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.textContent = '»';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadContent();
                 }
-            }
-
-            renderContent(results, currentType === 'tv');
-            renderPagination();
+            });
+            pagination.appendChild(nextBtn);
         }
 
         // ============================================
         // EVENT LISTENERS
         // ============================================
-
-        // Section tabs (Movie / TV)
+        // Section buttons (Movie/TV)
         document.querySelectorAll('.section-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.section-btn').forEach(b => b.classList.remove(
-                    'active'));
-                btn.classList.add('active');
-                currentType = btn.dataset.type;
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.section-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentType = this.dataset.type;
                 currentPage = 1;
-                searchInput.value = '';
                 isSearching = false;
-
-                // Update category buttons
-                updateCategoryButtons();
+                searchInput.value = '';
+                
+                // Update categories for TV shows
+                if (currentType === 'tv') {
+                    document.querySelector('[data-cat="upcoming"]').textContent = '📺 On The Air';
+                    document.querySelector('[data-cat="now_playing"]').textContent = '📅 Airing Today';
+                } else {
+                    document.querySelector('[data-cat="upcoming"]').textContent = '📅 Upcoming';
+                    document.querySelector('[data-cat="now_playing"]').textContent = '🎬 Now Playing';
+                }
+                
                 loadContent();
             });
         });
 
-        function updateCategoryButtons() {
-            const movieCategories = ['trending', 'popular', 'top_rated', 'upcoming', 'now_playing'];
-            const tvCategories = ['trending', 'popular', 'top_rated', 'upcoming', 'now_playing'];
-
-            const categories = currentType === 'movie' ? movieCategories : tvCategories;
-            const labels = currentType === 'movie' ?
-                ['🔥 Trending', '⭐ Popular', '🏆 Top Rated', '📅 Upcoming', '🎬 Now Playing'] :
-                ['🔥 Trending', '⭐ Popular', '🏆 Top Rated', '📡 On Air', '📺 Airing Today'];
-
-            catTabs.innerHTML = categories.map((cat, i) =>
-                `<button class="cat-btn ${cat === currentCategory ? 'active' : ''}" data-cat="${cat}">${labels[i]}</button>`
-            ).join('');
-
-            // Re-attach event listeners
-            catTabs.querySelectorAll('.cat-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    catTabs.querySelectorAll('.cat-btn').forEach(b => b.classList.remove(
-                        'active'));
-                    btn.classList.add('active');
-                    currentCategory = btn.dataset.cat;
-                    currentPage = 1;
-                    searchInput.value = '';
-                    isSearching = false;
-                    loadContent();
-                });
-            });
-        }
-
-        // Category buttons (initial)
-        catTabs.querySelectorAll('.cat-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                catTabs.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentCategory = btn.dataset.cat;
+        // Category buttons
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentCategory = this.dataset.cat;
                 currentPage = 1;
-                searchInput.value = '';
                 isSearching = false;
+                searchInput.value = '';
                 loadContent();
             });
         });
 
         // Search
         searchBtn.addEventListener('click', () => {
-            currentPage = 1;
             if (searchInput.value.trim()) {
-                document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            }
-            loadContent();
-        });
-
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+                isSearching = true;
                 currentPage = 1;
-                if (searchInput.value.trim()) {
-                    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-                }
                 loadContent();
             }
         });
 
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && searchInput.value.trim()) {
+                isSearching = true;
+                currentPage = 1;
+                loadContent();
+            }
+        });
+
+        // Close player
+        closePlayerBtn.addEventListener('click', () => {
+            playerModal.classList.remove('show');
+            videoFrame.src = '';
+        });
+
+        playerModal.addEventListener('click', (e) => {
+            if (e.target === playerModal) {
+                playerModal.classList.remove('show');
+                videoFrame.src = '';
+            }
+        });
+
+        // Source switcher
+        document.querySelectorAll('.alt-source-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.alt-source-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentActiveSource = this.dataset.source;
+                loadPlayer(currentType === 'movie' ? 'movie' : 'tv');
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && playerModal.classList.contains('show')) {
+                playerModal.classList.remove('show');
+                videoFrame.src = '';
+            }
+        });
+
+        // Initialize AdSense
+        window.addEventListener('load', function() {
+            try {
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            } catch (e) {
+                console.log('AdSense not loaded yet');
+            }
+        });
+
         // ============================================
-        // INIT
+        // INITIAL LOAD
         // ============================================
         loadContent();
-
-        console.log('✅ MovieHub Ready!');
-        console.log('🎬 VidSrc.sbs | VidSrc.pro | SuperEmbed | 2Embed');
-        console.log('📺 Movies + TV Shows supported');
-        console.log('⌨️ Press ESC to close player');
-        console.log('🔄 Click source buttons to switch if one fails');
-        console.log('🎯 Test: Click Deadpool & Wolverine (ID: 533535)');
     </script>
 </body>
 </html>
